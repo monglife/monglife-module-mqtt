@@ -1,0 +1,70 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.1.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.monglife.module'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+apply plugin: 'java-library'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+bootJar {
+    enabled(true)
+}
+
+jar {
+    enabled(false)
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2022.0.3"
+    }
+}
+
+dependencies {
+    // monglife-mqtt
+//    implementation 'com.github.monglife:monglife-module-mqtt:1.0.0'
+    implementation project(":monglife-module-mqtt")
+//    implementation files("monglife-module-mqtt-1.0.1.jar")
+
+    // spring
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+
+
+
+
+
+
+    // monglife-core
+    implementation 'com.github.mongLife:monglife-core:2.0.5'
+
+    // spring
+    implementation 'org.springframework:spring-web'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // mqtt
+    api 'org.springframework.integration:spring-integration-mqtt'
+    implementation 'org.springframework.boot:spring-boot-starter-integration'
+}

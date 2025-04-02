@@ -1,0 +1,67 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.1.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'maven-publish'
+}
+
+group = 'com.monglife.module'
+version = '1.0.1'
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+apply plugin: 'java-library'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'maven-publish'
+
+bootJar {
+    enabled(false)
+}
+
+jar {
+    archiveClassifier = ""
+    enabled(true)
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2022.0.3"
+    }
+}
+
+dependencies {
+    // monglife-core
+    implementation 'com.github.mongLife:monglife-core:2.0.5'
+
+    // spring
+    implementation 'org.springframework:spring-web'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // mqtt
+    api 'org.springframework.integration:spring-integration-mqtt'
+    implementation 'org.springframework.boot:spring-boot-starter-integration'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+            from components.java
+        }
+    }
+}

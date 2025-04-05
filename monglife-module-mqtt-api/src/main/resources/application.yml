@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+module:
+  mqtt:
+    host: localhost
+    port: 1883
+#    user-name: admin
+#    password: admin
+    connect-timeout: 30
+    keep-alive-interval: 60
+    automatic-reconnect: true
+    consumer:
+      enabled: true
+      qos: 2
+      base-topic: baseTopic
+      completion-timeout: 5000
+    publisher:
+      qos: 2
+      base-topic: baseTopic
+      retaind: false
+      async: true

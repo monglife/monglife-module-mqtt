@@ -11,9 +11,18 @@ public class DemoController {
 
     private final DemoPublisher demoPublisher;
 
-    @PostMapping("/mqtt")
-    public void mqttTest() {
-        // publish test message
+    @PostMapping("")
+    public void mqttPublishTest() {
         demoPublisher.demoPublish(1L, "publish test message.");
+    }
+
+    @PostMapping("/exception")
+    public void mqttPublishExceptionHandlerTest() {
+        demoPublisher.demoPublishExceptionHandler();
+    }
+
+    @PostMapping("/exception/advice")
+    public void mqttPublishAdviceExceptionHandleTest() {
+        demoPublisher.demoPublishAdviceExceptionHandler();
     }
 }

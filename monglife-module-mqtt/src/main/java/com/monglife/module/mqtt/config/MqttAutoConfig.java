@@ -1,6 +1,10 @@
 package com.monglife.module.mqtt.config;
 
 import com.monglife.module.mqtt.aspect.MqttPublishAspect;
+import com.monglife.module.mqtt.bean.MqttExceptionBean;
+import com.monglife.module.mqtt.bean.MqttExecuteBean;
+import com.monglife.module.mqtt.bean.MqttMappingBean;
+import com.monglife.module.mqtt.bean.MqttPublishBean;
 import com.monglife.module.mqtt.client.MqttOutBoundClient;
 import com.monglife.module.mqtt.property.MqttModuleProperties;
 import com.monglife.module.mqtt.service.MqttSendService;
@@ -13,6 +17,8 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.core.MessageProducer;
@@ -27,6 +33,18 @@ import org.springframework.messaging.MessageHandler;
 
 @Slf4j
 @AutoConfiguration
+@ComponentScan(
+    basePackageClasses = {
+        MqttPublishAspect.class,
+        MqttOutBoundClient.class,
+        MqttExceptionBean.class,
+        MqttExecuteBean.class,
+        MqttMappingBean.class,
+        MqttPublishBean.class,
+        MqttSendService.class,
+    }
+)
+@Import(MqttOutBoundClient.class)
 @EnableConfigurationProperties(MqttModuleProperties.class)
 public class MqttAutoConfig {
 
@@ -120,29 +138,13 @@ public class MqttAutoConfig {
             String topic = (String) message.getHeaders().get(MqttHeaders.RECEIVED_TOPIC);
             String payload = (String) message.getPayload();
 
-            log.info("receive: {}", message);
-
-            try {
-                mqttExecuteBean.invoke(topic == null ? "" : topic, payload);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
+            if (topic != null && !topic.isBlank()) {
+                try {
+                    mqttExecuteBean.invoke(topic, payload);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                }
             }
         };
-    }
-
-    /**
-     * Mqtt Components
-     */
-    @Bean
-    public MqttSendService mqttSendService(
-            @Qualifier("mqttOutBoundClient") MqttOutBoundClient mqttOutBoundClient,
-            MqttModuleProperties mqttModuleProperties
-    ) {
-        return new MqttSendService(mqttModuleProperties, mqttOutBoundClient);
-    }
-
-    @Bean
-    public MqttPublishAspect mqttPublishAspect(@Qualifier("mqttSendService") MqttSendService mqttSendService) {
-        return new MqttPublishAspect(mqttSendService);
     }
 }

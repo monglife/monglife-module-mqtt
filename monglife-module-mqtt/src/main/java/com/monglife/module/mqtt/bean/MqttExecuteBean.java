@@ -1,4 +1,4 @@
-package com.monglife.module.mqtt.config;
+package com.monglife.module.mqtt.bean;
 
 import com.monglife.module.mqtt.utils.TopicUtil;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +27,8 @@ public class MqttExecuteBean {
 
         List<MqttMappingBean.TopicMethod> topicMappingMethods = mqttMappingBean.getTopicMappingMethods(topic);
 
-        // topic 과 매칭되는 메서드가 1개인 경우
         if (topicMappingMethods.size() == 1) {
+            // topic 과 매칭되는 메서드가 1개인 경우
             try {
                 // 매칭 메서드 실행
                 mqttMappingBean.invoke(topic, payload, topicMappingMethods.get(0));
@@ -36,13 +36,11 @@ public class MqttExecuteBean {
                 // 예외 처리 메서드 실행
                 mqttExceptionBean.invoke(throwable);
             }
-        }
-        // topic 과 매칭되는 메서드가 없는 경우
-        else if(topicMappingMethods.isEmpty()) {
+        } else if(topicMappingMethods.isEmpty()) {
+            // topic 과 매칭되는 메서드가 없는 경우
             log.error("{} : not match method", topic);
-        }
-        // topic 과 매칭되는 메서드가 다수인 경우
-        else {
+        } else {
+            // topic 과 매칭되는 메서드가 다수인 경우
             log.error("{} : Too many mapping methods", topic);
         }
     }

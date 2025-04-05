@@ -1,4 +1,4 @@
-package com.monglife.module.mqtt.config;
+package com.monglife.module.mqtt.bean;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -46,28 +47,19 @@ public class MqttMappingBean implements InitializingBean {
         this.objectMapper.registerModule(new JavaTimeModule());
     }
 
-    public Set<String> getConsumeTopics() {
-
-        Set<String> consumeTopics = new HashSet<>();
-
-        mqttMethodMapping.keySet().forEach(mappingTopic -> {
-            String[] consumeTopicSplit = mappingTopic.split(WILD_CARD_WORD);
-
-            if (consumeTopicSplit.length > 0) {
-                consumeTopics.add(consumeTopicSplit[0] + "#");
-            }
-        });
-
-        return consumeTopics;
-    }
-
-    /**
-     * mqtt 매핑 메서드 스캔
-     */
     @Override
     public void afterPropertiesSet() {
 
         String[] beanNames = applicationContext.getBeanNamesForAnnotation(MqttConsumer.class);
+
+        searchAll(beanNames);
+    }
+
+    /**
+     * Mqtt Mapping Method Search All
+     * @param beanNames Components Names
+     */
+    private void searchAll(String[] beanNames) {
 
         for (String beanName : beanNames) {
             Object bean = applicationContext.getBean(beanName);
@@ -94,15 +86,13 @@ public class MqttMappingBean implements InitializingBean {
                     MqttMapping methodMqttMapping = method.getAnnotation(MqttMapping.class);
 
                     String methodTopic = TopicUtil.preProcessTopic(methodMqttMapping.value());
-
                     String baseTopic = TopicUtil.preProcessTopic(mqttModuleProperties.getConsumer().getBaseTopic());
-
                     String topic = TopicUtil.generateTopic(baseTopic, clazzTopic, methodTopic);
 
-                    // 파라미터 ( {%} ) 을 WILD_CARD_WORD 로 대치 후 key 값으로 사용
+                    // Parameter ( {%} ) 을 WILD_CARD_WORD 로 대치 후 key 값으로 사용
                     String key = topic.replaceAll("\\{[a-zA-Z0-9]+}", WILD_CARD_WORD);
 
-                    if (mqttMethodMapping.containsKey(key)) {
+                    if (mqttMethodMapping.containsKey(key) || !getTopicMappingMethods(topic).isEmpty()) {
                         throw new RuntimeException(beanClass.getName() + "#" + method.getName() + " : duplicate mapping methods.");
                     } else {
                         mqttMethodMapping.put(key, TopicMethod.builder()
@@ -117,7 +107,7 @@ public class MqttMappingBean implements InitializingBean {
     }
 
     /**
-     * 메서드 실행
+     * Mqtt Listener Method invoke
      */
     public void invoke(String topic, String payload, TopicMethod topicMappingMethod) throws Throwable {
         try {
@@ -141,43 +131,93 @@ public class MqttMappingBean implements InitializingBean {
     }
 
     /**
-     * 매핑 메서드 탐색
-     * @param topic 토픽
-     * @return 매칭된 매핑 메서드 리스트
+     * Get Mqtt Listener Mapping Method List
+     * @param topic Mqtt Message Topic
+     * @return Mapping Method List
      */
     public List<TopicMethod> getTopicMappingMethods(String topic) {
-
         List<TopicMethod> topicMappingMethods = new ArrayList<>();
-        List<String> topicSplit = Arrays.stream(topic.split("/")).toList();
+        List<String> topicSplit = Arrays.stream(topic.replaceAll("\\{[a-zA-Z0-9]+}", WILD_CARD_WORD).split("/")).toList();
 
         for (String wildMapping : this.mqttMethodMapping.keySet()) {
             List<String> wildMappingSplit = Arrays.stream(wildMapping.split("/")).toList();
 
             if (topicSplit.size() == wildMappingSplit.size()) {
                 boolean isAllMatch = true;
+
                 for (int index = 0; index < topicSplit.size(); index++) {
 
                     String topicTemp = topicSplit.get(index);
                     String wildMappingTemp = wildMappingSplit.get(index);
 
-                    if (WILD_CARD_WORD.equals(wildMappingTemp)) continue;
+                    if (WILD_CARD_WORD.equals(topicTemp) || WILD_CARD_WORD.equals(wildMappingTemp)) {
+                        continue;
+                    }
 
                     if (!topicTemp.equals(wildMappingTemp)) {
                         isAllMatch = false;
                         break;
                     }
                 }
-                if (isAllMatch) topicMappingMethods.add(this.mqttMethodMapping.get(wildMapping));
+
+                if (isAllMatch) {
+                    topicMappingMethods.add(this.mqttMethodMapping.get(wildMapping));
+                }
             }
         }
         return topicMappingMethods;
     }
 
     /**
-     * 메서드 파라 미터 정리
-     * @param topic 토픽
-     * @param topicMappingMethod 매핑 메서드 Dto
-     * @return 메서드 파라미터 순서에 맞는 Object 배열
+     * Get Mqtt Topics
+     * @return Mqtt Topic List
+     */
+    public Set<String> getConsumeTopics() {
+
+        Set<String> consumeNormalTopics = new HashSet<>();
+        Set<String> consumeWildTopics = new HashSet<>();
+
+        mqttMethodMapping.keySet().stream()
+                .sorted((o1, o2) -> o2.length() - o1.length())
+                .forEach(mappingTopic -> {
+                    String[] consumeTopicSplit = mappingTopic.split(WILD_CARD_WORD);
+
+                    if (!mappingTopic.contains(WILD_CARD_WORD)) {
+                        String consumeTopic = TopicUtil.preProcessTopic(mappingTopic);
+                        consumeNormalTopics.add(consumeTopic);
+                    } else if(consumeTopicSplit.length > 0) {
+                        String consumeTopic = TopicUtil.preProcessTopic(consumeTopicSplit[0]);
+                        consumeWildTopics.add(consumeTopic);
+                    }
+                });
+
+        Set<String> consumeTopics = consumeWildTopics.stream()
+                .map(consumeWildTopic -> consumeWildTopic + "/#")
+                .collect(Collectors.toSet());
+
+        for (String consumeNormalTopic : consumeNormalTopics) {
+            boolean isWildMatch = false;
+
+            for (String consumeWildTopic : consumeWildTopics) {
+                if (consumeNormalTopic.startsWith(consumeWildTopic)) {
+                    isWildMatch = true;
+                    break;
+                }
+            }
+
+            if (!isWildMatch) {
+                consumeTopics.add(consumeNormalTopic);
+            }
+        }
+
+        return consumeTopics;
+    }
+
+    /**
+     * Get Mqtt Listener Mapping Method Parameter
+     * @param topic Mqtt Message Topic
+     * @param topicMappingMethod Mapping Method Dto
+     * @return Mapping Method Parameter In Order
      */
     private Object[] getParameters(String topic, String payload, TopicMethod topicMappingMethod) {
 

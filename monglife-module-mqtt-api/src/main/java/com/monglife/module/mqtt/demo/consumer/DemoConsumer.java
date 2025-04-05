@@ -10,21 +10,22 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @Slf4j
 @MqttConsumer
+@MqttMapping("/demo/topic/consume")
 public class DemoConsumer {
 
-    @MqttMapping("/demo/topic/consume/test/{id}")
+    @MqttMapping("/test/{id}")
     public void demoConsume(@PathVariable("id") Long id, @MqttPayload DemoTopicRequestDto demoTopicRequestDto) {
         String message = demoTopicRequestDto.getMessage();
         log.info("[consume] id: {}, message: {}", id, message);
     }
 
-    @MqttMapping("/demo/topic/consume/exception")
-    public void demoConsumeExceptionHandler(String test) {
+    @MqttMapping("/exception")
+    public void demoConsumeExceptionHandler() {
         log.info("[consume] throwing runtime exception");
         throw new RuntimeException();
     }
 
-    @MqttMapping("/demo/topic/consume/exception/advice")
+    @MqttMapping("/exception/advice")
     public void demoConsumeAdviceExceptionHandler() {
         log.info("[consume] throwing runtime exception for consumer advice");
         throw new RuntimeException();

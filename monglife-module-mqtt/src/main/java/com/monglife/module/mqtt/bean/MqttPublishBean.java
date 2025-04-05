@@ -1,4 +1,4 @@
-package com.monglife.module.mqtt.config;
+package com.monglife.module.mqtt.bean;
 
 import com.monglife.module.mqtt.annotation.MqttPublish;
 import com.monglife.module.mqtt.dto.MqttResponseEntity;
@@ -56,9 +56,7 @@ public class MqttPublishBean implements InitializingBean {
 
                     Integer topicPrefixCount = TopicUtil.countTopicPrefix(topic, TOPIC_PREFIX);
 
-                    if (topicPrefixCount == 0) {
-                        throw new RuntimeException(beanClass.getName() + "#" + method.getName() + " : not exists topic prefix.");
-                    } else if (topicPrefixCount > 1) {
+                    if (topicPrefixCount > 1) {
                         throw new RuntimeException(beanClass.getName() + "#" + method.getName() + " : top many topic prefix.");
                     }
                 }

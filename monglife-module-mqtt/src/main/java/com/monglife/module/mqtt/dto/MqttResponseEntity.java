@@ -24,12 +24,20 @@ public class MqttResponseEntity<T> {
         this.topics = topics;
     }
 
-    public static <T> MqttResponseEntity<T> body() {
-        return new MqttResponseEntity<T>(null, new ArrayList<>());
-    }
-
     public static <T> MqttResponseEntityBuilder<T> body(T body) {
         return new MqttResponseEntityBuilder<T>().body(body);
+    }
+
+    public static <T> MqttResponseEntity<T> topic(final String... topics) {
+        return new MqttResponseEntity<T>(null, Arrays.stream(topics).toList());
+    }
+
+    public static <T> MqttResponseEntity<T> topics(final List<String> topics) {
+        return new MqttResponseEntity<T>(null, topics.stream().toList());
+    }
+
+    public static <T> MqttResponseEntity<T> empty() {
+        return new MqttResponseEntity<T>(null, new ArrayList<>());
     }
 
     public static class MqttResponseEntityBuilder<T> {

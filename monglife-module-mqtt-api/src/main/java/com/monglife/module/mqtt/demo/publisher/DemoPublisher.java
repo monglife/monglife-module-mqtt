@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DemoPublisher {
 
-    @MqttPublish("/demo/topic/{topic}")
+    @MqttPublish("/demo/topic/consume/test/{topic}")
     public MqttResponseEntity<DemoTopicRequestDto> demoPublish(Long id, String message) {
 
         String topic = String.valueOf(id);
@@ -19,5 +19,15 @@ public class DemoPublisher {
         return MqttResponseEntity
                 .body(body)
                 .topic(topic);
+    }
+
+    @MqttPublish("/demo/topic/consume/exception")
+    public MqttResponseEntity<?> demoPublishExceptionHandler() {
+        return MqttResponseEntity.empty();
+    }
+
+    @MqttPublish("/demo/topic/consume/exception/advice")
+    public MqttResponseEntity<?> demoPublishAdviceExceptionHandler() {
+        return MqttResponseEntity.empty();
     }
 }
